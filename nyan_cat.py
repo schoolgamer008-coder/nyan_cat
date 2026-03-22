@@ -31,15 +31,15 @@ for i in range(120):
     depth = random.choice([1, 2, 3])
 
     if depth == 1:
-        speed = 1
+        speed = 0.2
         size = 1
 
     elif depth == 2:
-        speed = 2
+        speed = 0.4
         size = 2
         
     else:
-        speed = 4
+        speed = 0.8
         size = 3
 
     stars.append([x, y, speed, size])
