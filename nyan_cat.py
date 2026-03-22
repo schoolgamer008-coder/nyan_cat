@@ -4,11 +4,19 @@ import pygame
 import random
 
 pygame.init()
+pygame.mixer.init()
+
+pygame.mixer.music.load("nyan_cat.mp3")
+pygame.mixer.music.play(-1)
+pygame.mixer.music.set_volume(0.01)
 
 WIDTH, HEIGHT = 1280, 720
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
 pygame.display.set_caption("nyan_cat")
+
+icon = pygame.image.load('icon.png')
+pygame.display.set_icon(icon)
 
 clock = pygame.time.Clock()
 FPS = 60
