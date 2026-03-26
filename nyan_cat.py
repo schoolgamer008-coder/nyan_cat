@@ -2,6 +2,7 @@
 
 import pygame
 import random
+import math
 
 pygame.init()
 pygame.mixer.init()
@@ -43,7 +44,7 @@ for i in range(120):
         speed = 0.4
         size = 3
 
-    stars.append([x, y, speed, size])
+    stars.append([x, y, speed, size, random.uniform(-0.15, 0.15)])
 
 running = True
 game_state = "START"
@@ -71,12 +72,11 @@ while running:
 
             elif game_state == "PLAYING":
 
-                # kle pride funkcija --> def character
                 if event.key == pygame.K_ESCAPE:
                     game_state = "START"
                     pygame.mixer.music.stop()
 
-                elif event.key == pygame.K_g: #ker še ni collisionov, da lahko sploh pridem tja
+                elif event.key == pygame.K_g:
                     game_state = "GAMEOVER"
                     pygame.mixer.music.stop()
 
@@ -90,7 +90,11 @@ while running:
                 elif event.key == pygame.K_ESCAPE:
                     running = False
 
-    screen.fill((15, 12, 41)) #deep space barva
+    t = pygame.time.get_ticks() * 0.002
+    r = 15 + int(4 * math.sin(t))
+    g = 12 + int(4 * math.sin(t + 2))
+    b = 41 + int(4 * math.sin(t + 4))
+    screen.fill((r, g, b))
 
     if game_state == "START":
         start_msg = font.render("PRESS SPACE TO START", True, (255, 255, 255))
@@ -102,12 +106,17 @@ while running:
 
         for star in stars:
             star[0] -= star[2]
+            star[1] += star[4]
 
             if star[0] < 0:
                 star[0] = WIDTH
                 star[1] = random.randint(0, HEIGHT)
 
-            pygame.draw.circle(screen, (255, 255, 255), (star[0], star[1]), star[3])
+            if star[1] < 0 or star[1] > HEIGHT:
+                star[4] *= -1
+
+            pygame.draw.circle(screen, (255, 255, 255),
+                            (int(star[0]), int(star[1])), star[3])
 
         seconds = (pygame.time.get_ticks() - start_ticks) / 1000
         score = int((seconds ** 1.1) * 10)
