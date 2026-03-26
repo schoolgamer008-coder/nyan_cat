@@ -66,16 +66,17 @@ while running:
                     start_ticks = pygame.time.get_ticks()
                     pygame.mixer.music.play(-1)
 
-                if event.key == pygame.K_ESCAPE:
+                elif event.key == pygame.K_ESCAPE:
                     running = False
 
             elif game_state == "PLAYING":
 
+                # kle pride funkcija --> def character
                 if event.key == pygame.K_ESCAPE:
                     game_state = "START"
                     pygame.mixer.music.stop()
 
-                if event.key == pygame.K_g: #ker še ni collisionov, da lahko sploh pridem tja
+                elif event.key == pygame.K_g: #ker še ni collisionov, da lahko sploh pridem tja
                     game_state = "GAMEOVER"
                     pygame.mixer.music.stop()
 
@@ -86,10 +87,10 @@ while running:
                     start_ticks = pygame.time.get_ticks()
                     pygame.mixer.music.play(-1)
 
-                if event.key == pygame.K_ESCAPE:
+                elif event.key == pygame.K_ESCAPE:
                     running = False
 
-    screen.fill((15, 12, 41))
+    screen.fill((15, 12, 41)) #deep space barva
 
     if game_state == "START":
         start_msg = font.render("PRESS SPACE TO START", True, (255, 255, 255))
