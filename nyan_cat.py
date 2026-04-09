@@ -143,9 +143,10 @@ class Game:
         if pygame.key.get_pressed()[pygame.K_a]:
             self.cat_x -= self.cat_speed
         if pygame.key.get_pressed()[pygame.K_w]:
-            self.cat_x += self.cat_speed
+            for _ in range(19):  # jump
+                    self.cat_y -= self.cat_speed*0.1
         if pygame.key.get_pressed()[pygame.K_d]:
-            self.cat_y -= self.cat_speed
+            self.cat_x += self.cat_speed
 # da ne gre dol zekrana
         self.cat_x = max(0, min(WIDTH - icon.get_width(), self.cat_x))
         self.cat_y = max(0, min(HEIGHT - icon.get_height(), self.cat_y))
