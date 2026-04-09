@@ -99,6 +99,10 @@ class Game:
         self.stars = StarField()
         self.ui = UI()
 
+        self.cat_x = WIDTH // 2
+        self.cat_y = HEIGHT // 2
+        self.cat_speed = 5
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -136,6 +140,16 @@ class Game:
             seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
             self.score = int((seconds ** 1.1) * 10)
 
+        if pygame.key.get_pressed()[pygame.K_a]:
+            self.cat_x -= self.cat_speed
+        if pygame.key.get_pressed()[pygame.K_w]:
+            self.cat_x += self.cat_speed
+        if pygame.key.get_pressed()[pygame.K_d]:
+            self.cat_y -= self.cat_speed
+# da ne gre dol zekrana
+        self.cat_x = max(0, min(WIDTH - icon.get_width(), self.cat_x))
+        self.cat_y = max(0, min(HEIGHT - icon.get_height(), self.cat_y))
+
     def draw(self):
         self.background.draw()
 
@@ -148,6 +162,7 @@ class Game:
 
         elif self.state == "GAMEOVER":
             self.ui.draw_gameover(self.score)
+        screen.blit(icon, (self.cat_x, self.cat_y))
 
 # MAIN LOOP
 
