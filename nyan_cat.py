@@ -87,23 +87,6 @@ class UI:
         score_surface = font.render(f"NYAN SCORE: {score:,}", True, (255, 255, 255))
         screen.blit(score_surface, (20, 20))
 
-# EFFECTS
-
-class Effects:
-    def __init__(self):
-        self.trail = []
-        self.colors = [(255,0,0), (255,165,0), (255,255,0), (51,255,51), (0,153,255), (102,51,255)]
-
-    def update(self, pos):
-        self.trail.append(list(pos))
-        if len(self.trail) > 30:
-            self.trail.pop(0)
-
-    def draw(self, screen):
-        for i, pos in enumerate(self.trail):
-            for j, color in enumerate(self.colors):
-                pygame.draw.rect(screen, color, (pos[0] - (len(self.trail)-i)*10, pos[1] + j*6 - 15, 12, 6))
-
 # GAME
 
 class Game:
@@ -112,29 +95,16 @@ class Game:
         self.start_ticks = 0
         self.score = 0
 
-        self.player = None
-        self.platforms = []
-
         self.background = Background()
         self.stars = StarField()
         self.ui = UI()
-        self.effects = Effects()
-
-    def handle_collisions(self, player, platforms):
-        for plat in platforms:
-            if player.rect.colliderect(plat.rect):
-                if player.velocity_y > 0:
-                    player.rect.bottom = plat.rect.top
-                    player.velocity_y = 0
-
-    def check_fail_condition(self, player):
-        if player.rect.top > HEIGHT:
-            self.state = "GAMEOVER"
-            pygame.mixer.music.stop()
 
         self.cat_x = WIDTH // 2
         self.cat_y = HEIGHT // 2
         self.cat_speed = 5
+
+        self.gravity = 0.5
+        self.velocity_y = 0
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -170,35 +140,30 @@ class Game:
     def update(self):
         if self.state == "PLAYING":
             self.stars.update()
-            
-            if self.player:
-                self.effects.update(self.player.rect.center)
-                self.handle_collisions(self.player, self.platforms)
-                self.check_fail_condition(self.player)
-
             seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
             self.score = int((seconds ** 1.1) * 10)
 
-        if pygame.key.get_pressed()[pygame.K_a]:
-            self.cat_x -= self.cat_speed
-        if pygame.key.get_pressed()[pygame.K_w]:
-            for _ in range(19):  # jump
-                    self.cat_y -= self.cat_speed*0.1
-        if pygame.key.get_pressed()[pygame.K_d]:
-            self.cat_x += self.cat_speed
+            if pygame.key.get_pressed()[pygame.K_a]:
+                self.cat_x -= self.cat_speed
+            if pygame.key.get_pressed()[pygame.K_w]:
+                self.velocity_y = -10
+            if pygame.key.get_pressed()[pygame.K_d]:
+                self.cat_x += self.cat_speed
+# omejitev da ne gre iz ekrana
+            self.cat_x = max(0, min(WIDTH - icon.get_width(), self.cat_x))
+            self.cat_y = max(0, min(HEIGHT - icon.get_height(), self.cat_y))
+            if self.cat_y >= HEIGHT - icon.get_height():
+                pygame.mixer.music.stop()
+                self.state = "GAMEOVER"
 
-        # da ne gre dol zekrana
-        self.cat_x = max(0, min(WIDTH - icon.get_width(), self.cat_x))
-        self.cat_y = max(0, min(HEIGHT - icon.get_height(), self.cat_y))
-
+            # gravity
+            self.velocity_y += self.gravity
+            self.cat_y += self.velocity_y
     def draw(self):
         self.background.draw()
 
         if self.state == "PLAYING":
             self.stars.draw()
-
-            self.effects.draw(screen)
-
             self.ui.draw_score(self.score)
 
         elif self.state == "START":
@@ -206,6 +171,15 @@ class Game:
 
         elif self.state == "GAMEOVER":
             self.ui.draw_gameover(self.score)
+            if pygame.key.get_pressed()[pygame.K_SPACE]:
+                pygame.mixer.music.play(-1)
+                self.state = "PLAYING"
+                self.start_ticks = pygame.time.get_ticks()
+
+                self.cat_x = WIDTH // 2
+                self.cat_y = HEIGHT // 2
+                self.velocity_y = 0
+
         screen.blit(icon, (self.cat_x, self.cat_y))
 
 # MAIN LOOP
