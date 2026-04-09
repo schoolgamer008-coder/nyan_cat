@@ -87,6 +87,26 @@ class UI:
         score_surface = font.render(f"NYAN SCORE: {score:,}", True, (255, 255, 255))
         screen.blit(score_surface, (20, 20))
 
+# EFFECTS
+
+class Effects:
+    def __init__(self):
+        self.trail = [] # Stores previous positions
+        self.colors = [(255,0,0), (255,165,0), (255,255,0), (51,255,51), (0,153,255), (102,51,255)]
+
+    def update(self, pos):
+        # We store the position to draw the trail behind the cat
+        self.trail.append(list(pos))
+        if len(self.trail) > 30: # Limits trail length
+            self.trail.pop(0)
+
+    def draw(self, screen):
+        # Draws 6 colored rectangles at every saved position
+        for i, pos in enumerate(self.trail):
+            for j, color in enumerate(self.colors):
+                # 'pos' will be the (x, y) of the character
+                pygame.draw.rect(screen, color, (pos[0] - (len(self.trail)-i)*10, pos[1] + j*6 - 15, 12, 6))
+
 # GAME
 
 class Game:
@@ -95,9 +115,25 @@ class Game:
         self.start_ticks = 0
         self.score = 0
 
+        self.player = None
+        self.platforms = []
+
         self.background = Background()
         self.stars = StarField()
         self.ui = UI()
+        self.effects = Effects()
+
+    def handle_collisions(self, player, platforms):
+        for plat in platforms:
+            if player.rect.colliderect(plat.rect):
+                if player.velocity_y > 0:
+                    player.rect.bottom = plat.rect.top
+                    player.velocity_y = 0
+
+    def check_fail_condition(self, player):
+        if player.rect.top > HEIGHT:
+            self.state = "GAMEOVER"
+            pygame.mixer.music.stop()
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -133,6 +169,12 @@ class Game:
     def update(self):
         if self.state == "PLAYING":
             self.stars.update()
+            
+            if self.player:
+                self.effects.update(self.player.rect.center)
+                self.handle_collisions(self.player, self.platforms)
+                self.check_fail_condition(self.player)
+
             seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
             self.score = int((seconds ** 1.1) * 10)
 
@@ -141,6 +183,9 @@ class Game:
 
         if self.state == "PLAYING":
             self.stars.draw()
+
+            self.effects.draw(screen)
+
             self.ui.draw_score(self.score)
 
         elif self.state == "START":
