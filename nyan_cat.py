@@ -1,3 +1,4 @@
+
 import pygame
 import random
 import math
@@ -66,26 +67,39 @@ class StarField:
         for star in self.stars:
             pygame.draw.circle(screen, (255, 255, 255), (int(star[0]), int(star[1])), star[3])
 
+# PLATFORM
+
+class Platform:
+    def __init__(self):
+        self.width = random.randint(100, 200)
+        self.height = 20
+        self.x = -self.width
+        self.y = random.randint(100, HEIGHT - 100)
+        self.speed = random.uniform(2, 4)
+
+    def update(self):
+        self.x += self.speed
+
+    def draw(self):
+        pygame.draw.rect(screen, (200, 100, 200), (self.x, self.y, self.width, self.height))
+
+    def off_screen(self):
+        return self.x > WIDTH
+
 # UI
 
 class UI:
     def draw_start(self):
-        start_msg = font.render("PRESS SPACE TO START", True, (255, 255, 255))
-        exit_msg = font.render("PRESS ESC TO QUIT", True, (255, 255, 255))
-        screen.blit(start_msg, (WIDTH//2 - 500, HEIGHT//2 - 220))
-        screen.blit(exit_msg, (WIDTH//2 - 500, HEIGHT//2 - 160))
+        screen.blit(font.render("PRESS SPACE TO START", True, (255,255,255)), (WIDTH//2 - 500, HEIGHT//2 - 220))
+        screen.blit(font.render("PRESS ESC TO QUIT", True, (255,255,255)), (WIDTH//2 - 500, HEIGHT//2 - 160))
 
     def draw_gameover(self, score):
-        msg = font.render(f"GAME OVER! FINAL SCORE: {score:,}", True, (255, 255, 255))
-        restart_msg = font.render("PRESS SPACE TO RESTART", True, (255, 255, 255))
-        exit_msg = font.render("PRESS ESC TO QUIT", True, (255, 255, 255))
-        screen.blit(msg, (WIDTH//2 - 500, HEIGHT//2 - 220))
-        screen.blit(restart_msg, (WIDTH//2 - 500, HEIGHT//2 - 160))
-        screen.blit(exit_msg, (WIDTH//2 - 500, HEIGHT//2 - 100))
+        screen.blit(font.render(f"GAME OVER! FINAL SCORE: {score:,}", True, (255,255,255)), (WIDTH//2 - 500, HEIGHT//2 - 220))
+        screen.blit(font.render("PRESS SPACE TO RESTART", True, (255,255,255)), (WIDTH//2 - 500, HEIGHT//2 - 160))
+        screen.blit(font.render("PRESS ESC TO QUIT", True, (255,255,255)), (WIDTH//2 - 500, HEIGHT//2 - 100))
 
     def draw_score(self, score):
-        score_surface = font.render(f"NYAN SCORE: {score:,}", True, (255, 255, 255))
-        screen.blit(score_surface, (20, 20))
+        screen.blit(font.render(f"NYAN SCORE: {score:,}", True, (255,255,255)), (20, 20))
 
 # GAME
 
@@ -106,6 +120,16 @@ class Game:
         self.gravity = 0.5
         self.velocity_y = 0
 
+        self.platforms = []
+        self.spawn_timer = 0
+
+        # JUMP SYSTEM
+        self.jump_count = 0
+        self.max_jumps = 2
+        self.jump_hold_time = 0
+        self.max_jump_hold = 0.5
+        self.is_jumping = False
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -124,46 +148,101 @@ class Game:
                     if event.key == pygame.K_ESCAPE:
                         pygame.mixer.music.stop()
                         self.state = "START"
-                    if event.key == pygame.K_g:
-                        pygame.mixer.music.stop()
-                        self.state = "GAMEOVER"
 
                 elif self.state == "GAMEOVER":
                     if event.key == pygame.K_SPACE:
+                        self.reset_game()
                         pygame.mixer.music.play(-1)
                         self.state = "PLAYING"
-                        self.start_ticks = pygame.time.get_ticks()
                     if event.key == pygame.K_ESCAPE:
                         return False
         return True
 
+    def reset_game(self):
+        self.cat_x = WIDTH // 2
+        self.cat_y = HEIGHT // 2
+        self.velocity_y = 0
+        self.platforms = []
+        self.spawn_timer = 0
+        self.start_ticks = pygame.time.get_ticks()
+        self.jump_count = 0
+
     def update(self):
         if self.state == "PLAYING":
             self.stars.update()
+
             seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
             self.score = int((seconds ** 1.1) * 10)
 
-            if pygame.key.get_pressed()[pygame.K_a]:
+            dt = clock.get_time() / 1000
+            keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_a]:
                 self.cat_x -= self.cat_speed
-            if pygame.key.get_pressed()[pygame.K_w]:
-                self.velocity_y = -10
-            if pygame.key.get_pressed()[pygame.K_d]:
+            if keys[pygame.K_d]:
                 self.cat_x += self.cat_speed
-# omejitev da ne gre iz ekrana
-            self.cat_x = max(0, min(WIDTH - icon.get_width(), self.cat_x))
-            self.cat_y = max(0, min(HEIGHT - icon.get_height(), self.cat_y))
-            if self.cat_y >= HEIGHT - icon.get_height():
-                pygame.mixer.music.stop()
-                self.state = "GAMEOVER"
+
+            # JUMP
+            if keys[pygame.K_w]:
+                if not self.is_jumping and self.jump_count < self.max_jumps:
+                    self.velocity_y = -10
+                    self.is_jumping = True
+                    self.jump_hold_time = 0
+                    self.jump_count += 1
+
+            if self.is_jumping:
+                self.jump_hold_time += dt
+                if self.jump_hold_time < self.max_jump_hold:
+                    self.velocity_y -= 0.3
+
+            if not keys[pygame.K_w]:
+                self.is_jumping = False
 
             # gravity
             self.velocity_y += self.gravity
             self.cat_y += self.velocity_y
+
+            # spawn platform
+            self.spawn_timer += 1
+            if self.spawn_timer > 60:
+                self.platforms.append(Platform())
+                self.spawn_timer = 0
+
+            # update platform
+            for platform in self.platforms:
+                platform.update()
+
+            # collision
+            cat_rect = pygame.Rect(self.cat_x, self.cat_y, icon.get_width(), icon.get_height())
+            for platform in self.platforms:
+                plat_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
+                if cat_rect.colliderect(plat_rect) and self.velocity_y > 0:
+                    self.cat_y = platform.y - icon.get_height()
+                    self.velocity_y = 0
+                    self.jump_count = 0
+
+            # remove old
+            self.platforms = [p for p in self.platforms if not p.off_screen()]
+
+            # bounds
+            self.cat_x = max(0, min(WIDTH - icon.get_width(), self.cat_x))
+
+            if self.cat_y >= HEIGHT - icon.get_height():
+                self.jump_count = 0
+
+            if self.cat_y > HEIGHT:
+                pygame.mixer.music.stop()
+                self.state = "GAMEOVER"
+
     def draw(self):
         self.background.draw()
 
         if self.state == "PLAYING":
             self.stars.draw()
+
+            for platform in self.platforms:
+                platform.draw()
+
             self.ui.draw_score(self.score)
 
         elif self.state == "START":
@@ -171,14 +250,6 @@ class Game:
 
         elif self.state == "GAMEOVER":
             self.ui.draw_gameover(self.score)
-            if pygame.key.get_pressed()[pygame.K_SPACE]:
-                pygame.mixer.music.play(-1)
-                self.state = "PLAYING"
-                self.start_ticks = pygame.time.get_ticks()
-
-                self.cat_x = WIDTH // 2
-                self.cat_y = HEIGHT // 2
-                self.velocity_y = 0
 
         screen.blit(icon, (self.cat_x, self.cat_y))
 
